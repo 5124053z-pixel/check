@@ -1,0 +1,11 @@
+# 仮想環境（重すぎるので絶対に入れない）
+.venv/
+__pycache__/
+*.pyc
+
+# 環境変数（APIキーが漏れるので絶対に入れない）
+.env
+
+# OCRの学習データや一時ファイル
+.ipynb_checkpoints/
+data/

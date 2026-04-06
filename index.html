@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表記ゆれ校正AI / Smart Proofreader</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-background"></div>
+    <div class="container">
+        <header class="app-header">
+            <div class="logo">
+                <span class="icon">✨</span>
+                <h1>Smart Proofreader</h1>
+            </div>
+            <div class="actions">
+                <div class="ai-controls">
+                    <span class="ai-controls-label">AI校正</span>
+                    <label><input type="radio" name="ai-mode" value="on" checked> ON</label>
+                    <label><input type="radio" name="ai-mode" value="off"> OFF</label>
+                </div>
+                <div id="ai-runtime-status" class="ai-runtime-status ai-status-idle">AI状態: 未実行</div>
+                <button class="btn btn-secondary" onclick="toggleHistory()">履歴を見る / 閉じる</button>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('text')">📄 テキスト校正</button>
+            <button class="tab-btn" onclick="switchTab('image')">🖼️ 画像校正 (OCR)</button>
+        </div>
+
+        <main class="main-content">
+            <div id="text-section" class="editor-section glass-panel">
+                <div class="toolbar">
+                    <span class="section-title">ドキュメントエディタ</span>
+                    <button class="btn btn-secondary btn-sm" onclick="copyToClipboard()">📋 コピー</button>
+                </div>
+                <div id="editor" contenteditable="true" placeholder="ここに校正したい文章を入力してください..."></div>
+                <div class="status-bar">
+                    <div class="counts">
+                        <div id="char-count" class="char-count">0 / 140文字</div>
+                        <div id="char-warning" class="char-warning">⚠ 140文字を超えています</div>
+                    </div>
+                    <button id="analyze-btn" class="btn btn-primary analyze-btn" onclick="analyzeText()">
+                        <span>校正を開始する</span>
+                        <div class="loader" id="analyze-loader"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div id="image-section" class="editor-section glass-panel hidden">
+                <div class="toolbar">
+                    <span class="section-title">画像校正 (OCR)</span>
+                </div>
+                <div id="drop-zone" class="drop-zone" onclick="document.getElementById('image-input').click()">
+                    <span class="icon">📄</span>
+                    <p>画像またはPDFをドラッグ＆ドロップ、またはクリック</p>
+                    <input type="file" id="image-input" accept="image/*,application/pdf" class="hidden" onchange="handleImageSelect(event)">
+                </div>
+                <div id="image-preview-container" class="image-preview-container hidden">
+                    <div id="pdf-icon" class="pdf-icon hidden">📄 PDF</div>
+                    <img id="image-preview" src="" alt="Preview">
+                    <div id="file-name-display" class="file-name-display"></div>
+                    <button class="btn btn-danger btn-sm" onclick="resetImage()">✕ 削除</button>
+                </div>
+                <div class="status-bar">
+                    <div class="info">
+                        <p class="text-xs text-muted">※画像内の文字を抽出し、曜日・事実・AI校正を一括で行います。</p>
+                    </div>
+                    <button id="ocr-btn" class="btn btn-primary ocr-btn" onclick="analyzeImage()" disabled>
+                        <span>画像を解析する</span>
+                        <div class="loader" id="ocr-loader"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div id="suggestions-container" class="suggestions-container">
+                    <div class="empty-state">
+                        <span class="emoji">📝</span>
+                        <p>文章を入力して「校正を開始する」をクリックすると、ここに提案が表示されます。</p>
+                    </div>
+                </div>
+
+                <div id="history-panel" class="history-panel glass-panel hidden">
+                    <div class="toolbar">
+                        <span class="section-title">変換履歴</span>
+                        <button class="btn btn-icon btn-sm" onclick="clearHistory()">🗑️ クリア</button>
+                    </div>
+                    <ul id="history-list" class="history-list">
+                        <li class="empty-history">履歴はありません</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="ui-lock-overlay" class="ui-lock-overlay hidden">
+        <div class="ui-lock-card">
+            <div class="ui-lock-spinner"></div>
+            <p class="lock-message">処理中です。しばらくお待ちください...</p>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
