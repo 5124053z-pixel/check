@@ -111,8 +111,8 @@ def analyze_text(req: TextRequest):
     }
 
     if req.use_ai and gemini_client:
-        # 安定性の高い gemini-2.0-flash を使用
-        model_id = "gemini-2.0-flash"
+        # 安定性の高い gemini-2.5-flash を使用
+        model_id = "gemini-2.5-flash"
         prompt = f"""あなたはプロの日本語校正者です。
 入力テキストから以下の種類の間違いを見つけてください：
 
