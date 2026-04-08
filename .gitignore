@@ -9,3 +9,6 @@ __pycache__/
 # OCRの学習データや一時ファイル
 .ipynb_checkpoints/
 data/
+
+# その他の一時ファイルやログ
+cashe.sqlite
