@@ -28,11 +28,17 @@ app.add_middleware(
 tokenizer_obj = sudachipy.Dictionary().create()
 mode = sudachipy.SplitMode.C
 
-# EasyOCR Init (Japanese & English)
-print("[INFO] Initializing EasyOCR Reader...")
-# CPUモードで安定動作。初回のみモデルDLが発生します。
-ocr_reader = easyocr.Reader(['ja', 'en'], gpu=False)
-print("[INFO] EasyOCR Reader Ready.")
+# EasyOCR は初回起動を高速化するため遅延読み込み（Lazy Load）にする
+ocr_reader = None
+
+def get_ocr_reader():
+    global ocr_reader
+    if ocr_reader is None:
+        print("[INFO] Initializing EasyOCR Reader (Lazy Load)...")
+        # CPUモードで安定動作。初回のみモデルDLが発生します。
+        ocr_reader = easyocr.Reader(['ja', 'en'], gpu=False)
+        print("[INFO] EasyOCR Reader Ready.")
+    return ocr_reader
 # Gemini Init
 api_key = os.getenv("GEMINI_API_KEY")
 gemini_client = None
@@ -113,7 +119,7 @@ def analyze_text(req: TextRequest):
 
     if req.use_ai and gemini_client:
         ai_target = req.ai_text if req.ai_text is not None else req.text
-        # 安定性の高い gemini-2.5-flash を使用
+        # 軽量で制限に引っかかりにくい gemini-2.5-flash を使用
         model_id = "gemini-2.5-flash"
         prompt = f"""あなたはプロの日本語校正者です。
 入力テキストから以下の種類の間違いを見つけてください：
@@ -188,7 +194,8 @@ def run_local_ocr(image_content: bytes) -> str:
         img = Image.open(io.BytesIO(image_content))
         img_np = np.array(img)
         # detail=0 で純粋なテキストリストのみ取得
-        results = ocr_reader.readtext(img_np, detail=0)
+        reader = get_ocr_reader()
+        results = reader.readtext(img_np, detail=0)
         return "\n".join(results)
     except Exception as e:
         print(f"[WARN] EasyOCR Error: {e}")

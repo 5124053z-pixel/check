@@ -8,11 +8,16 @@ class PythonApiManager {
 
     public function __construct() {
         // 必要なら .env / サーバー環境変数で上書き可能
-        $this->pythonPath = getenv('PYTHON_API_PYTHON') ?: 'C:\\Users\\milky\\anaconda3\\python.exe';
+        $venvPath = __DIR__ . '\\.venv\\Scripts\\python.exe';
+        if (file_exists($venvPath)) {
+            $this->pythonPath = $venvPath;
+        } else {
+            $this->pythonPath = getenv('PYTHON_API_PYTHON') ?: 'C:\\Users\\milky\\anaconda3\\python.exe';
+        }
         $this->scriptPath = getenv('PYTHON_API_SCRIPT') ?: (__DIR__ . '\\main.py');
     }
 
-    public function ensureRunning($waitSeconds = 12) {
+    public function ensureRunning($waitSeconds = 30) {
         if ($this->isPortOpen()) {
             return true;
         }
@@ -43,7 +48,7 @@ class PythonApiManager {
         $script = escapeshellarg($this->scriptPath);
 
         // WindowsでXAMPP(PHP)から非同期起動
-        $cmd = 'cmd /c start "" /B ' . $python . ' ' . $script . ' >NUL 2>&1';
+        $cmd = 'cmd /c cd /d "' . __DIR__ . '" && start "" /B ' . $python . ' ' . $script . ' > "' . __DIR__ . '\python.log" 2>&1';
         @pclose(@popen($cmd, 'r'));
     }
 }

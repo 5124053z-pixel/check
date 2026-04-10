@@ -68,7 +68,11 @@ class SudachiClient {
             // AI提案が空のキャッシュは無視して再リクエスト
         }
 
-        $data = json_encode(['text' => $text, 'ai_text' => $aiText, 'use_ai' => (bool)$useAi]);
+        $payload = ['text' => $text, 'use_ai' => (bool)$useAi];
+        if ($aiText !== null) {
+            $payload['ai_text'] = $aiText;
+        }
+        $data = json_encode($payload);
         $options = [
             'http' => [
                 'header'  => "Content-type: application/json\r\n",
