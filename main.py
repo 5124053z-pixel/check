@@ -46,6 +46,7 @@ if api_key:
 
 class TextRequest(BaseModel):
     text: str
+    ai_text: str = None
     use_ai: bool = True
 
 def preprocess_image(content: bytes, max_size=1600) -> bytes:
@@ -111,6 +112,7 @@ def analyze_text(req: TextRequest):
     }
 
     if req.use_ai and gemini_client:
+        ai_target = req.ai_text if req.ai_text is not None else req.text
         # 安定性の高い gemini-2.5-flash を使用
         model_id = "gemini-2.5-flash"
         prompt = f"""あなたはプロの日本語校正者です。
@@ -132,13 +134,13 @@ def analyze_text(req: TextRequest):
 ]
 
 入力テキスト:
-{req.text}"""
+{ai_target}"""
 
         try:
             ai_status["executed"] = True
             print(f"[DEBUG] === Gemini Request ===")
             print(f"[DEBUG] Model: {model_id}")
-            print(f"[DEBUG] Input text ({len(req.text)} chars): {req.text[:200]}{'...' if len(req.text) > 200 else ''}")
+            print(f"[DEBUG] Input text ({len(ai_target)} chars): {ai_target[:200]}{'...' if len(ai_target) > 200 else ''}")
             response = gemini_client.models.generate_content(
                 model=model_id,
                 contents=prompt

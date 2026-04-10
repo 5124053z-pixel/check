@@ -22,7 +22,7 @@ class SudachiClient {
         ");
     }
 
-    public function analyze($text, $useAi = true) {
+    public function analyze($text, $aiText = null, $useAi = true) {
         if (trim($text) === '') {
             return [
                 'tokens' => [],
@@ -42,7 +42,7 @@ class SudachiClient {
             return false;
         }
 
-        $hash = md5($text);
+        $hash = md5($text . ($aiText ?? ''));
 
         // キャッシュチェック（AI提案が存在する結果のみ有効とする）
         $stmt = $this->pdo->prepare("SELECT json_result FROM grammar_cache WHERE hash_key = :hash");
@@ -68,7 +68,7 @@ class SudachiClient {
             // AI提案が空のキャッシュは無視して再リクエスト
         }
 
-        $data = json_encode(['text' => $text, 'use_ai' => (bool)$useAi]);
+        $data = json_encode(['text' => $text, 'ai_text' => $aiText, 'use_ai' => (bool)$useAi]);
         $options = [
             'http' => [
                 'header'  => "Content-type: application/json\r\n",

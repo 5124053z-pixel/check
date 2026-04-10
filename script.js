@@ -237,14 +237,15 @@ function renderSuggestions(originalText, matches) {
 
     let html = '';
     let lastIndex = 0;
+    const chars = Array.from(originalText);
 
     // Render Editor text with highlights
     for (const match of matches) {
-        html += escapeHTML(originalText.slice(lastIndex, match.start));
+        html += escapeHTML(chars.slice(lastIndex, match.start).join(''));
         html += `<span class="highlight" id="${match.id}">${escapeHTML(match.word)}</span>`;
         lastIndex = match.end;
     }
-    html += escapeHTML(originalText.slice(lastIndex));
+    html += escapeHTML(chars.slice(lastIndex).join(''));
     editor.innerHTML = html.replace(/\n/g, '<br>');
 
     // Render Suggestion Boxes

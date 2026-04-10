@@ -43,7 +43,7 @@ class ProofreadPipeline {
         $maskedText = $this->maskPreDetected($text, array_merge($typoMatches, $dateMatches, $factMatches));
 
         // Layer 3: Sudachi + AI
-        $apiResult = $this->sudachiClient->analyze($maskedText !== $text ? $maskedText : $text, (bool)$useAi);
+        $apiResult = $this->sudachiClient->analyze($text, $maskedText !== $text ? $maskedText : null, (bool)$useAi);
         if ($apiResult === false) {
             $aiStatus['error'] = 'python_api_unavailable';
             $aiStatus['outcome'] = 'python_api_unavailable';
