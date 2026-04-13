@@ -14,16 +14,17 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # ディスク容量がパンクするのを防ぐため、重いライブラリを「1つずつ」小分けにインストールしてキャッシュをその都度消す
+# ディスク容量パンク対策: 依存関係によるGPU版巨大PyTorchの再ダウンロードを完全阻止する
 # 1. 最も重いPyTorch系
 RUN pip install --no-cache-dir torch==2.2.2+cpu torchvision==0.17.2+cpu --extra-index-url https://download.pytorch.org/whl/cpu \
     && rm -rf /tmp/* /root/.cache/pip
 
-# 2. 次に重いEasyOCRとその関連
-RUN pip install --no-cache-dir easyocr==1.7.2 \
+# 2. EasyOCRが勝手に重いGPU版を入れないようにCPU版のURLを指定してインストール
+RUN pip install --no-cache-dir easyocr==1.7.2 --extra-index-url https://download.pytorch.org/whl/cpu \
     && rm -rf /tmp/* /root/.cache/pip
 
-# 3. 残りの軽いパッケージを一気に入れる
-RUN pip install --no-cache-dir -r requirements.txt \
+# 3. 残りの軽いパッケージ（ここでも念のためURL指定）
+RUN pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu \
     && rm -rf /tmp/* /root/.cache/pip
 
 # コード全体をコンテナにコピー（docker-composeでマウントするため上書き可能）
