@@ -10,11 +10,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # requirements.txtをコピーしてインストール
 COPY requirements.txt .
 
-# 古いパッケージ（setup.py）のビルドエラーを防ぐため、pipとsetuptoolsを最新にする
+# 古いパッケージのビルドエラーを防ぐ
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# キャッシュを無効化してCPU版PyTorchとその他ライブラリをインストール
-RUN pip install --no-cache-dir -r requirements.txt
+# ディスク容量がパンクするのを防ぐため、重いライブラリを「1つずつ」小分けにインストールしてキャッシュをその都度消す
+# 1. 最も重いPyTorch系
+RUN pip install --no-cache-dir torch==2.2.2+cpu torchvision==0.17.2+cpu --extra-index-url https://download.pytorch.org/whl/cpu \
+    && rm -rf /tmp/* /root/.cache/pip
+
+# 2. 次に重いEasyOCRとその関連
+RUN pip install --no-cache-dir easyocr==1.7.2 \
+    && rm -rf /tmp/* /root/.cache/pip
+
+# 3. 残りの軽いパッケージを一気に入れる
+RUN pip install --no-cache-dir -r requirements.txt \
+    && rm -rf /tmp/* /root/.cache/pip
 
 # コード全体をコンテナにコピー（docker-composeでマウントするため上書き可能）
 COPY . .
