@@ -59,10 +59,22 @@ class ProofreadPipeline {
         // Layer 1 + 3
         $matches = $this->proofreader->analyze($text, $tokens, $aiSuggestions);
 
-        // Layer 2/4/5 を重複なしでマージ
-        $matches = $this->mergeNonOverlapping($matches, $typoMatches);
-        $matches = $this->mergeNonOverlapping($matches, $dateMatches);
-        $matches = $this->mergeNonOverlapping($matches, $factMatches);
+        // Layer 2, 4, 5 (事前フィルターで見つけた事実確認を結果にマージする)
+        $allPreMatches = array_merge($typoMatches, $dateMatches, $factMatches);
+        
+        // 重複を除外してマージ
+        foreach ($allPreMatches as $pm) {
+            $overlapping = false;
+            foreach ($matches as $m) {
+                if (max($pm['start'], $m['start']) < min($pm['end'], $m['end'])) {
+                    $overlapping = true;
+                    break;
+                }
+            }
+            if (!$overlapping) {
+                $matches[] = $pm;
+            }
+        }
 
         usort($matches, fn($a, $b) => $a['start'] - $b['start']);
         return $matches;
