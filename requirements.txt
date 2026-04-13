@@ -16,7 +16,6 @@ Pillow==12.2.0
 PyMuPDF==1.27.2.2
 SudachiPy==0.6.10
 SudachiDict-core==20260116
-SudachiDict-full==20260116
 httpx==0.28.1
 pydantic==2.12.5
 requests==2.33.1
