@@ -119,8 +119,8 @@ def analyze_text(req: TextRequest):
 
     if req.use_ai and gemini_client:
         ai_target = req.ai_text if req.ai_text is not None else req.text
-        # 軽量で制限に引っかかりにくい gemini-2.5-flash を使用
-        model_id = "gemini-2.5-flash"
+        # 安定していて503エラー（混雑）が起きにくい gemini-2.5-flash-lite に変更
+        model_id = "gemini-2.5-flash-lite"
         prompt = f"""あなたはプロの日本語校正者です。
 入力テキストから以下の種類の間違いを見つけてください：
 
