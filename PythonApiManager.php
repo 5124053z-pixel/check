@@ -18,6 +18,11 @@ class PythonApiManager {
     }
 
     public function ensureRunning($waitSeconds = 30) {
+        // Docker環境の場合はOSに依存する自動起動をスキップし、別コンテナが稼働していると見なす
+        if (getenv('IS_DOCKER')) {
+            return true;
+        }
+
         if ($this->isPortOpen()) {
             return true;
         }

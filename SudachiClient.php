@@ -3,11 +3,13 @@
 require_once __DIR__ . '/PythonApiManager.php';
 
 class SudachiClient {
-    private $apiUrl = "http://127.0.0.1:8000/analyze";
+    private $apiUrl;
     private $pdo;
     private $apiManager;
 
     public function __construct() {
+        // Docker環境などの場合は .env や OS環境変数の PYTHON_API_URL を使う
+        $this->apiUrl = getenv('PYTHON_API_URL') ?: "http://127.0.0.1:8000/analyze";
         $dbPath = __DIR__ . '/cache.sqlite';
         $this->pdo = new PDO('sqlite:' . $dbPath);
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

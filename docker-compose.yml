@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  php-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.php
+    ports:
+      - "80:80"
+    volumes:
+      # ホスト側の内容をコンテナの /var/www/html にマウント（SQLiteや画像等の一時保存のため）
+      # Docker環境ではこのディレクトリ全体を同期します
+      - ./:/var/www/html
+    environment:
+      # PHPからPython APIを呼ぶためのURLを、Docker内のネットワーク名(python-api)に設定
+      - PYTHON_API_URL=http://python-api:8000/analyze
+      - IS_DOCKER=true
+    depends_on:
+      - python-api
+    restart: always
+
+  python-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    ports:
+      - "8000:8000"
+    volumes:
+      # プロジェクト全体をマウント（.venv は除外されるよう注意が必要）
+      - ./:/app
+    restart: always

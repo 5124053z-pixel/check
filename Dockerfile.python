@@ -1,0 +1,24 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# 必要なシステムライブラリ（easyocr用など）
+RUN apt-get update && apt-get install -y \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgl1-mesa-glx \
+    && rm -rf /var/lib/apt/lists/*
+
+# requirements.txtをコピーしてインストール
+COPY requirements.txt .
+
+# キャッシュを無効化してCPU版PyTorchとその他ライブラリをインストール
+RUN pip install --no-cache-dir -r requirements.txt
+
+# コード全体をコンテナにコピー（docker-composeでマウントするため上書き可能）
+COPY . .
+
+# FastAPIの起動コマンド
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
