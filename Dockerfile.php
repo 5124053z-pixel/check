@@ -1,11 +1,12 @@
 FROM php:8.2-apache
 
 # 必要なパッケージと拡張モジュールのインストール
-RUN apt-get update && apt-get install -y \
+RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
     libsqlite3-dev \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
+    && rm -rf /var/lib/apt/lists/* \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd pdo pdo_sqlite
 
