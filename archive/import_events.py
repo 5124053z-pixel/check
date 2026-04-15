@@ -1,10 +1,18 @@
-"""
-event56th.sql (MySQL) を SQLite の event56th.sqlite に変換するスクリプト
-"""
-import sqlite3, re, os, sys
+import sqlite3, re, os, sys, argparse
 
-SQL_FILE = r"C:\Users\milky\Downloads\event56th.sql"
-DB_FILE  = r"C:\xampp\htdocs\check\event56th.sqlite"
+# \u30d1\u30b9\u306f\u30b3\u30de\u30f3\u30c9\u30e9\u30a4\u30f3\u5f15\u6570\u3067\u6307\u5b9a\u3059\u308b\uff08\u30c7\u30d5\u30a9\u30eb\u30c8\uff1a\u30b9\u30af\u30ea\u30d7\u30c8\u3068\u540c\u3058\u30c7\u30a3\u30ec\u30af\u30c8\u30ea\uff09
+_here = os.path.dirname(os.path.abspath(__file__))
+parser = argparse.ArgumentParser(description="MySQL dump \u2192 SQLite \u5909\u63db")
+parser.add_argument("sql_file", nargs="?", help="\u5165\u529b SQL \u30d5\u30a1\u30a4\u30eb\u30d1\u30b9")
+parser.add_argument("--db",    default=os.path.join(_here, "event56th.sqlite"), help="SQLite \u51fa\u529b\u30d1\u30b9")
+args = parser.parse_args()
+
+if not args.sql_file:
+    parser.print_help()
+    sys.exit(1)
+
+SQL_FILE = args.sql_file
+DB_FILE  = args.db
 
 # --- SQLite DB を作成 ---
 if os.path.exists(DB_FILE):

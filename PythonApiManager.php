@@ -12,7 +12,8 @@ class PythonApiManager {
         if (file_exists($venvPath)) {
             $this->pythonPath = $venvPath;
         } else {
-            $this->pythonPath = getenv('PYTHON_API_PYTHON') ?: 'C:\\Users\\milky\\anaconda3\\python.exe';
+            // 環境変数で指定がなければ PATH 上の python3/python を使用
+            $this->pythonPath = getenv('PYTHON_API_PYTHON') ?: (PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3');
         }
         $this->scriptPath = getenv('PYTHON_API_SCRIPT') ?: (__DIR__ . '\\main.py');
     }
@@ -52,7 +53,7 @@ class PythonApiManager {
         $python = escapeshellarg($this->pythonPath);
         $script = escapeshellarg($this->scriptPath);
 
-        // WindowsでXAMPP(PHP)から非同期起動
+        // ローカル開発環境でのみ使用：PHPから Python API をバックグラウンド起動
         $cmd = 'cmd /c cd /d "' . __DIR__ . '" && start "" /B ' . $python . ' ' . $script . ' > "' . __DIR__ . '\python.log" 2>&1';
         @pclose(@popen($cmd, 'r'));
     }
