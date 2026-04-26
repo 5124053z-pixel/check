@@ -1,119 +1,81 @@
 <?php
 
-require_once __DIR__ . '/PythonApiManager.php';
-
 class SudachiClient {
     private $apiUrl;
-    private $pdo;
-    private $apiManager;
+    private $db;
 
     public function __construct() {
-        // Docker環境などの場合は .env や OS環境変数の PYTHON_API_URL を使う
-        $this->apiUrl = getenv('PYTHON_API_URL') ?: "http://127.0.0.1:8000/analyze";
-        $dbPath = __DIR__ . '/cache.sqlite';
-        $this->pdo = new PDO('sqlite:' . $dbPath);
-        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->apiManager = new PythonApiManager();
+        // Docker環境では環境変数から取得、デフォルトはlocalhost
+        $this->apiUrl = getenv('PYTHON_API_URL') ?: 'http://127.0.0.1:8000/analyze';
         
-        $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS grammar_cache (
+        // キャッシュDBの初期化
+        $dbPath = __DIR__ . '/cache.sqlite';
+        try {
+            $this->db = new PDO("sqlite:$dbPath");
+            $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->db->exec("CREATE TABLE IF NOT EXISTS grammar_cache (
                 hash_key TEXT PRIMARY KEY,
                 json_result TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        ");
+            )");
+        } catch (PDOException $e) {
+            error_log("SudachiClient: Cache DB error: " . $e->getMessage());
+            $this->db = null;
+        }
     }
 
     public function analyze($text, $aiText = null, $useAi = true) {
-        if (trim($text) === '') {
-            return [
-                'tokens' => [],
-                'ai_suggestions' => [],
-                'ai_status' => [
-                    'requested' => (bool)$useAi,
-                    'available' => false,
-                    'executed' => false,
-                    'suggestions_count' => 0,
-                    'error' => null,
-                    'outcome' => $useAi ? 'empty_text' : 'disabled'
-                ]
-            ];
+        if (empty($text)) {
+            return ['tokens' => [], 'ai_suggestions' => [], 'ai_status' => ['outcome' => 'empty']];
         }
 
-        if (!$this->apiManager->ensureRunning()) {
-            return false;
-        }
+        $hashKey = md5($text . ($aiText ?? '') . ($useAi ? '1' : '0'));
 
-        $hash = md5($text . ($aiText ?? ''));
-
-        // キャッシュチェック（AI提案が存在する結果のみ有効とする）
-        $stmt = $this->pdo->prepare("SELECT json_result FROM grammar_cache WHERE hash_key = :hash");
-        $stmt->execute([':hash' => $hash]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($row && $useAi) {
-            $cached = json_decode($row['json_result'], true);
-            // ai_suggestionsが存在して非空なキャッシュのみ有効
-            if (!empty($cached['ai_suggestions'])) {
-                if (!isset($cached['ai_status'])) {
-                    $cached['ai_status'] = [
-                        'requested' => true,
-                        'available' => true,
-                        'executed' => true,
-                        'suggestions_count' => count($cached['ai_suggestions'] ?? []),
-                        'error' => null,
-                        'outcome' => count($cached['ai_suggestions'] ?? []) > 0 ? 'suggestions_found' : 'no_suggestions'
-                    ];
-                }
-                return $cached;
+        // キャッシュチェック
+        if ($this->db) {
+            $stmt = $this->db->prepare("SELECT json_result FROM grammar_cache WHERE hash_key = ?");
+            $stmt->execute([$hashKey]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                return json_decode($row['json_result'], true);
             }
-            // AI提案が空のキャッシュは無視して再リクエスト
         }
 
-        $payload = ['text' => $text, 'use_ai' => (bool)$useAi];
-        if ($aiText !== null) {
-            $payload['ai_text'] = $aiText;
-        }
-        $data = json_encode($payload);
-        $options = [
-            'http' => [
-                'header'  => "Content-type: application/json\r\n",
-                'method'  => 'POST',
-                'content' => $data,
-                'timeout' => 15,
-            ],
+        // APIリクエスト
+        $data = [
+            'text' => $text,
+            'ai_text' => $aiText,
+            'use_ai' => $useAi
         ];
 
-        $context  = stream_context_create($options);
-        $result = @file_get_contents($this->apiUrl, false, $context);
+        $ch = curl_init($this->apiUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30); // タイムアウト設定
 
-        if ($result === false) {
-            return false;
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            error_log("SudachiClient: API error (HTTP $httpCode): $response");
+            return null;
         }
 
-        $responseObj = json_decode($result, true);
+        $result = json_decode($response, true);
         
-        if (isset($responseObj['tokens'])) {
-            // AI提案がある場合のみキャッシュに保存
-            if ($useAi && !empty($responseObj['ai_suggestions'])) {
-                $stmt = $this->pdo->prepare("INSERT OR REPLACE INTO grammar_cache (hash_key, json_result) VALUES (:hash, :result)");
-                $stmt->execute([':hash' => $hash, ':result' => json_encode($responseObj, JSON_UNESCAPED_UNICODE)]);
+        // キャッシュ保存 (AI提案がある場合、またはAI不使用時)
+        if ($this->db && $result && ($useAi === false || !empty($result['ai_suggestions']))) {
+            try {
+                $stmt = $this->db->prepare("INSERT OR REPLACE INTO grammar_cache (hash_key, json_result) VALUES (?, ?)");
+                $stmt->execute([$hashKey, $response]);
+            } catch (PDOException $e) {
+                error_log("SudachiClient: Cache write error: " . $e->getMessage());
             }
-            if (!isset($responseObj['ai_status'])) {
-                $responseObj['ai_status'] = [
-                    'requested' => (bool)$useAi,
-                    'available' => true,
-                    'executed' => (bool)$useAi,
-                    'suggestions_count' => count($responseObj['ai_suggestions'] ?? []),
-                    'error' => null,
-                    'outcome' => !$useAi
-                        ? 'disabled'
-                        : (count($responseObj['ai_suggestions'] ?? []) > 0 ? 'suggestions_found' : 'no_suggestions')
-                ];
-            }
-            return $responseObj;
         }
 
-        return false;
+        return $result;
     }
 }
