@@ -154,6 +154,10 @@ body {
     min-height: 600px;
 }
 
+#text-section {
+    min-height: 470px;
+}
+
 .sidebar {
     flex: 1 1 35%;
     display: flex;
@@ -190,8 +194,8 @@ body {
 
 #editor {
     flex-grow: 1;
-    font-size: 1.1rem;
-    line-height: 1.8;
+    font-size: 0.95rem;
+    line-height: 1.6;
     outline: none;
     padding: 1rem;
     border-radius: 0.75rem;
@@ -199,7 +203,8 @@ body {
     border: 1px solid transparent;
     transition: all 0.2s ease;
     white-space: pre-wrap;
-    min-height: 400px;
+    min-height: 260px;
+    max-height: 320px;
     overflow-y: auto;
 }
 
@@ -220,7 +225,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 1.5rem;
+    margin-top: 0.9rem;
     padding-top: 1rem;
     border-top: 1px solid rgba(0,0,0,0.05);
 }

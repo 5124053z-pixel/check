@@ -24,9 +24,14 @@ class FactChecker {
         $uniqueId = 0;
 
         // 全件取得してメモリ上でマッチング（データ量が少ない場合）
-        // 大量にある場合は検索クエリを工夫する
-        $stmt = $this->db->query("SELECT event_name, circle_name, place_detail, event_date FROM event56th WHERE cancel = ''");
-        $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // DB未初期化時は校正処理全体を落とさず事実チェックだけスキップする
+        try {
+            $stmt = $this->db->query("SELECT event_name, circle_name, place_detail, event_date FROM event56th WHERE cancel = ''");
+            $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("FactChecker: Query failed. " . $e->getMessage());
+            return [];
+        }
 
         foreach ($events as $event) {
             $names = array_unique([$event['event_name'], $event['circle_name']]);

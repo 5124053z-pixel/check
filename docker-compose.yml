@@ -12,6 +12,7 @@ services:
     environment:
       - PYTHON_API_URL=http://python-api:8000/analyze
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
     depends_on:
       - python-api
     restart: always
@@ -22,6 +23,7 @@ services:
       target: python-api
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
     volumes:
       - ./:/app
     restart: always

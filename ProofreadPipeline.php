@@ -44,7 +44,7 @@ class ProofreadPipeline {
 
         // Layer 3: Sudachi + AI
         $apiResult = $this->sudachiClient->analyze($text, $maskedText !== $text ? $maskedText : null, (bool)$useAi);
-        if ($apiResult === false) {
+        if (!is_array($apiResult)) {
             $aiStatus['error'] = 'python_api_unavailable';
             $aiStatus['outcome'] = 'python_api_unavailable';
             $apiResult = ['tokens' => [], 'ai_suggestions' => []];

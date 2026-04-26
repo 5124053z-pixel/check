@@ -55,11 +55,12 @@ def get_ocr_reader():
 
 # Gemini
 api_key = os.getenv("GEMINI_API_KEY")
+gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 gemini_client = None
 if api_key and api_key != "your_gemini_api_key_here":
     try:
         gemini_client = genai.Client(api_key=api_key)
-        logger.info("Gemini API client initialized.")
+        logger.info(f"Gemini API client initialized. model={gemini_model}")
     except Exception as e:
         logger.error(f"Gemini init error: {e}")
 else:
@@ -129,7 +130,11 @@ def run_local_ocr(image_content: bytes) -> str:
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "gemini_available": gemini_client is not None}
+    return {
+        "status": "healthy",
+        "gemini_available": gemini_client is not None,
+        "gemini_model": gemini_model,
+    }
 
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_text(req: TextRequest):
@@ -159,7 +164,6 @@ async def analyze_text(req: TextRequest):
 
     if req.use_ai and gemini_client:
         ai_target = req.ai_text if req.ai_text is not None else req.text
-        model_id = "gemini-2.0-flash-exp" # 最新の高速モデルに更新
         prompt = f"""あなたはプロの日本語校正者です。
 入力テキストから、明らかな「打ち間違い」「変換ミス」「送り仮名の誤り」「カタカナ語の誤り」を見つけてください。
 文体の好みやスタイルの違いは指摘しないでください。
@@ -175,7 +179,7 @@ async def analyze_text(req: TextRequest):
         try:
             ai_status["executed"] = True
             response = gemini_client.models.generate_content(
-                model=model_id,
+                model=gemini_model,
                 contents=prompt
             )
             resp_txt = response.text.strip()
