@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   php-web:
     build:
       context: .
       target: php-web
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     volumes:
       - ./:/var/www/html
     environment:
@@ -15,6 +13,21 @@ services:
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
     depends_on:
       - python-api
+    restart: always
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN:-vps.ikkyosai.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - php-web
     restart: always
 
   python-api:
@@ -27,3 +40,7 @@ services:
     volumes:
       - ./:/app
     restart: always
+
+volumes:
+  caddy_data:
+  caddy_config:

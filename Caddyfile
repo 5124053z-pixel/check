@@ -1,0 +1,7 @@
+http://{$APP_DOMAIN} {
+	reverse_proxy php-web:80
+}
+
+{$APP_DOMAIN} {
+	reverse_proxy php-web:80
+}
